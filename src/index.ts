@@ -2,7 +2,7 @@ import { geocodeCity } from "./services/geocoding";
 import { generateGrid } from "./utils/grid";
 import { searchPlaces, getPlaceDetails } from "./services/places";
 import { Place } from "./interfaces/place";
-import { apiKey, city } from "./config"; // Import from config file
+import { apiKey, city } from "./config/env";
 
 export async function main(): Promise<void> {
   if (!city) {

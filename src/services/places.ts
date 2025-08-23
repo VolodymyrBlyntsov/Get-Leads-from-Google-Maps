@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from "axios";
 import { LatLng } from "../interfaces/geo";
 import { Place } from "../interfaces/place";
 import { NearbySearchResponse, PlaceDetailsResponse } from "../interfaces/api";
-import { excludedTypes } from "../config"; // Import from config file
+import { excludedTypes } from "../config/excludedTypes";
 
 export async function searchPlaces(
   location: LatLng,
