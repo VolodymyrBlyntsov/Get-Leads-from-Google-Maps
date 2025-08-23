@@ -3,6 +3,17 @@ import { calculateOptimalGrid, calculateCoverageStats } from "./utils/grid";
 import { searchPlacesNew } from "./services/places";
 import { Place } from "./interfaces/place";
 import { apiKey, city } from "./config/env";
+import { excludedLinkTypes } from "./utils/excludedLinksFilter"
+
+function isValidWebsite(website: string): boolean {
+  if (!website) return false;
+  
+  const lowerWebsite = website.toLowerCase();
+  
+  return !excludedLinkTypes.some(excludedDomain => 
+    lowerWebsite.includes(excludedDomain)
+  );
+}
 
 export async function main(): Promise<void> {
   if (!city) {
@@ -56,11 +67,11 @@ export async function main(): Promise<void> {
     let websiteCount = 0;
     
     for (const place of allPlaces.values()) {
-      if (place.website) {
+      if (place.website && isValidWebsite(place.website)) {
         //const types = place.types?.join(' | ') || 'N/A';
         
         //To find out what type(s) of company on Google Maps, add  `${types}`inside console.log AND uncomment types variable (useful for CSV)
-        console.log(`${place.name}: ${place.website}`); 
+        console.log(`${place.name}: ${place.website}`);
         websiteCount++;
       }
     }
