@@ -1,67 +1,60 @@
 import axios, { AxiosResponse } from "axios";
 import { LatLng } from "../interfaces/geo";
 import { Place } from "../interfaces/place";
-import { NearbySearchResponse, PlaceDetailsResponse } from "../interfaces/api";
-import { excludedTypes } from "../config/excludedTypes";
+import { NearbySearchResponse } from "../interfaces/api";
+import { includedTypes } from "../config/includedTypes";
 
-export async function searchPlaces(
+export async function searchPlacesNew(
   location: LatLng,
   apiKey: string,
-  radius = 2000,
-  pagetoken = ""
+  radius = 1000
 ): Promise<Place[]> {
   try {
-    const params: any = {
-      location: `${location.lat},${location.lng}`,
-      radius,
-      key: apiKey,
-      keyword: "store OR construction OR hardware OR building",
-      type: "store",
+    const requestBody = {
+      includedTypes: includedTypes,
+      maxResultCount: 20,
+      locationRestriction: {
+        circle: {
+          center: {
+            latitude: location.lat,
+            longitude: location.lng,
+          },
+          radius: radius,
+        },
+      },
+      rankPreference: "POPULARITY"
     };
 
-    if (pagetoken) params.pagetoken = pagetoken;
-
-    const res: AxiosResponse<NearbySearchResponse> = await axios.get(
-      "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
-      { params }
+    const res: AxiosResponse<NearbySearchResponse> = await axios.post(
+      `https://places.googleapis.com/v1/places:searchNearby`,
+      requestBody,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.websiteUri,places.types,places.location'
+        }
+      }
     );
 
-    const filtered = (res.data.results || []).filter((place) => {
-      const types = place.types || [];
-      return !types.some((type: string) => excludedTypes.includes(type));
-    });
-
-    const places: Place[] = filtered.map((place) => ({
-      name: place.name,
-      place_id: place.place_id,
-    }));
-
-    if (res.data.next_page_token) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const morePlaces = await searchPlaces(location, apiKey, radius, res.data.next_page_token);
-      return [...places, ...morePlaces];
+    if (!res.data.places) {
+      return [];
     }
+
+    const places: Place[] = res.data.places.map((place) => ({
+      name: place.displayName?.text || 'Unknown',
+      place_id: place.id,
+      website: place.websiteUri,
+      types: place.types || [],
+      location: place.location ? {
+        lat: place.location.latitude,
+        lng: place.location.longitude
+      } : undefined
+    }));
 
     return places;
   } catch (error) {
-    throw new Error(`ERROR: Place search failed: ${error.message}`);
-  }
-}
-
-export async function getPlaceDetails(placeId: string, apiKey: string): Promise<string | null> {
-  try {
-    const res: AxiosResponse<PlaceDetailsResponse> = await axios.get(
-      "https://maps.googleapis.com/maps/api/place/details/json",
-      {
-        params: {
-          place_id: placeId,
-          key: apiKey,
-          fields: "website",
-        },
-      }
-    );
-    return res.data.result?.website || null;
-  } catch (error) {
-    return null;
+    console.error(`ERROR: Place search failed at ${location.lat}, ${location.lng}:`, error.response?.data?.error || error.message);
+    return [];
   }
 }

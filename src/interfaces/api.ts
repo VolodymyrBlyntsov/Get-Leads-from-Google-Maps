@@ -1,18 +1,36 @@
 import { Place } from "./place";
 
-export interface NearbySearchResponse {
-  results: {
-    name: string;
-    place_id: string;
-    types?: string[];
-  }[];
-  next_page_token?: string;
+export interface NearbySearchRequest {
+  includedTypes: string[];
+  maxResultCount: number;
+  locationRestriction: {
+    circle: {
+      center: {
+        latitude: number;
+        longitude: number;
+      };
+      radius: number;
+    };
+  };
+  languageCode?: string;
+  regionCode?: string;
 }
 
-export interface PlaceDetailsResponse {
-  result: {
-    website?: string;
-  };
+export interface NearbySearchResponse {
+  places: Array<{
+    id: string;
+    displayName: {
+      text: string;
+      languageCode: string;
+    };
+    websiteUri?: string;
+    types: string[];
+    location: {
+      latitude: number;
+      longitude: number;
+    };
+  }>;
+  nextPageToken?: string;
 }
 
 export interface SearchResult {
