@@ -1,9 +1,11 @@
+// src/index.ts
 import { geocodeCity } from "./services/geocoding";
 import { calculateOptimalGrid, calculateCoverageStats } from "./utils/grid";
 import { searchPlacesNew } from "./services/places";
 import { Place } from "./interfaces/place";
 import { apiKey, city } from "./config/env";
-import { excludedLinkTypes } from "./utils/excludedLinksFilter"
+import { excludedLinkTypes } from "./utils/excludedLinksFilter";
+import { writeToCsv } from "./utils/export";
 
 function isValidWebsite(website: string): boolean {
   if (!website) return false;
@@ -16,6 +18,8 @@ function isValidWebsite(website: string): boolean {
 }
 
 export async function main(): Promise<void> {
+  const isCsvOutput = process.argv.includes('--csv');
+
   if (!city) {
     console.error("❌ ERROR: Enter city name (e.g., Kyiv)");
     process.exit(1);
@@ -63,25 +67,25 @@ export async function main(): Promise<void> {
     console.log(`\n🎯 Total unique places found: ${allPlaces.size}`);
     console.log(`📊 Total API searches performed: ${totalSearches}`);
 
-    console.log("\n🌐 Places with websites:");
-    let websiteCount = 0;
-    
-    for (const place of allPlaces.values()) {
-      if (place.website && isValidWebsite(place.website)) {
-        //const types = place.types?.join(' | ') || 'N/A';
-        
-        //To find out what type(s) of company on Google Maps, add  `${types}`inside console.log AND uncomment types variable (useful for CSV)
-        console.log(`${place.name}: ${place.website}`);
-        websiteCount++;
-      }
-    }
+    const placesWithWebsites = Array.from(allPlaces.values()).filter(place =>
+      place.website && isValidWebsite(place.website)
+    );
 
-    console.log(`\n📈 Final statistics:`);
-    console.log(`   🏢 Total places found: ${allPlaces.size}`);
-    console.log(`   🌐 Places with websites: ${websiteCount} (${(websiteCount/allPlaces.size*100).toFixed(1)}%)`);
-    console.log(`   🔍 API calls made: ${totalSearches}`);
-    console.log("✅ Search complete.");
-    
+    if (isCsvOutput) {
+      const filename = `${city}_websites.csv`;
+      writeToCsv(placesWithWebsites, filename);
+    } else {
+      console.log("\n🌐 Places with websites:");
+      for (const place of placesWithWebsites) {
+        // const types = place.types?.join(' | ') || 'N/A';
+        console.log(`${place.name}: ${place.website}`);
+      }
+      console.log(`\n📈 Final statistics:`);
+      console.log(`   🏢 Total places found: ${allPlaces.size}`);
+      console.log(`   🌐 Places with websites: ${placesWithWebsites.length} (${(placesWithWebsites.length / allPlaces.size * 100).toFixed(1)}%)`);
+      console.log(`   🔍 API calls made: ${totalSearches}`);
+      console.log("✅ Search complete.");
+    }
   } catch (err: any) {
     console.error("❌ ERROR:", err.message);
     process.exit(1);
